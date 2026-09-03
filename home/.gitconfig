@@ -1,0 +1,10 @@
+[user]
+    name = Avery Peterson
+    email = averypeterson115@gmail.com
+    signingkey = CB727584EB9C70ED
+
+[commit]
+    gpgsign = true
+
+[init]
+    defaultBranch = main

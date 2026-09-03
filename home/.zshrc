@@ -32,3 +32,10 @@ alias gs="git status"
 
 # GPG
 export GPG_TTY=$(tty)
+
+# bun completions
+[ -s "/home/avery/.bun/_bun" ] && source "/home/avery/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

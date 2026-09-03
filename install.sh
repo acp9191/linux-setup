@@ -1,18 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+#!/usr/bin/env bash
+set -euo pipefail
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$REPO/scripts/lib.sh"
 
-echo "==> Updating apt"
-sudo apt update
+printf "\n"
+printf "${BOLD}Linux VM Setup${RESET}\n"
+printf "${DIM}Provisioning your development environment${RESET}\n"
 
-echo "==> Installing packages"
-xargs sudo apt install -y < "$REPO/packages/apt.txt"
+header "System packages"
 
-echo "==> Installing Zsh"
+run_with_spinner "Updating package lists" sudo apt update
+run_with_spinner \
+    "Installing system packages" \
+    bash -c "xargs sudo apt install -y < '$REPO/packages/apt.txt'"
+
+section_done
+
+header "Shell"
+
 "$REPO/scripts/install-zsh.sh"
-
-echo "==> Installing Zsh configuration"
 ln -sf "$REPO/home/.zshrc" "$HOME/.zshrc"
+success "Zsh configuration"
+section_done
 
-echo "==> Done!"
+header "Development tools"
+
+"$REPO/scripts/install-uv.sh"
+"$REPO/scripts/install-bun.sh"
+section_done
+
+header "Git & GPG"
+
+ln -sf "$REPO/home/.gitconfig" "$HOME/.gitconfig"
+success "Git configuration"
+
+mkdir -p "$HOME/.gnupg"
+chmod 700 "$HOME/.gnupg"
+ln -sf "$REPO/home/.gnupg/gpg-agent.conf" "$HOME/.gnupg/gpg-agent.conf"
+chmod 600 "$HOME/.gnupg/gpg-agent.conf"
+gpgconf --kill gpg-agent 2>/dev/null || true
+success "GPG agent configuration"
+
+section_done
+
+printf "\n${GREEN}${BOLD}✓ Setup complete!${RESET}\n\n"
