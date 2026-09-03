@@ -4,6 +4,8 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO/scripts/lib.sh"
 
+export PATH="$HOME/.local/bin:$PATH"
+
 if command -v mise >/dev/null 2>&1; then
     success "mise already installed: $(mise --version)"
 else

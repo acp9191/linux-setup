@@ -36,12 +36,16 @@ header "Development tools"
 "$REPO/scripts/install-uv.sh"
 "$REPO/scripts/install-bun.sh"
 "$REPO/scripts/install-mise.sh"
+"$REPO/scripts/install-tailscale.sh"
+"$REPO/scripts/install-opencode.sh"
 
 mkdir -p "$HOME/.config/mise"
 ln -sf "$REPO/mise/config.toml" "$HOME/.config/mise/config.toml"
 success "mise configuration"
 
-mise install
+run_with_spinner \
+    "Installing mise tools" \
+    mise install
 section_done
 
 header "Git & GPG"

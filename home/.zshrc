@@ -46,3 +46,6 @@ eval "$(zoxide init zsh)"
 # mise
 eval "$(mise activate zsh)"
 
+# OpenCode
+export PATH="$HOME/.opencode/bin:$PATH"
+
