@@ -13,4 +13,5 @@ tmux
 tree
 unzip
 wget
+zoxide
 zsh

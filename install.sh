@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-#!/usr/bin/env bash
-set -euo pipefail
-
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO/scripts/lib.sh"
 
 printf "\n"
 printf "${BOLD}Linux VM Setup${RESET}\n"
 printf "${DIM}Provisioning your development environment${RESET}\n"
+
+sudo -v
 
 header "System packages"
 
@@ -23,14 +22,26 @@ section_done
 header "Shell"
 
 "$REPO/scripts/install-zsh.sh"
+
 ln -sf "$REPO/home/.zshrc" "$HOME/.zshrc"
 success "Zsh configuration"
+
+ln -sf "$REPO/home/.tmux.conf" "$HOME/.tmux.conf"
+success "tmux configuration"
+
 section_done
 
 header "Development tools"
 
 "$REPO/scripts/install-uv.sh"
 "$REPO/scripts/install-bun.sh"
+"$REPO/scripts/install-mise.sh"
+
+mkdir -p "$HOME/.config/mise"
+ln -sf "$REPO/mise/config.toml" "$HOME/.config/mise/config.toml"
+success "mise configuration"
+
+mise install
 section_done
 
 header "Git & GPG"
