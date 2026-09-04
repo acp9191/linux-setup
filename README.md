@@ -18,10 +18,13 @@ This repository contains my personal configuration and provisioning scripts for 
   * Python 3.14
   * Go
 * **Tailscale** — private networking between machines
+* **Docker** — container runtime and Compose
 * **OpenCode** — AI coding agent
-* **Git** — global Git configuration and aliases
+* **Git** — global Git configuration, aliases, and delta
+* **GitHub CLI** — GitHub access from the terminal
 * **GPG** — Git commit signing configuration
-* **Dotfiles** — shell, tmux, Git, and GPG configuration managed from the repository
+* **direnv** — automatic project-specific environment variables
+* **Dotfiles** — shell, tmux, Git, mise, and GPG configuration managed from the repository
 
 ## Quick Start
 
@@ -40,6 +43,12 @@ Run the installer:
 
 The installer is designed to be **idempotent**, so it can safely be run again when provisioning an existing machine.
 
+After installation, verify the environment:
+
+```bash
+./check.sh
+```
+
 ## What `install.sh` Does
 
 The setup is organized into a few layers:
@@ -50,8 +59,9 @@ The setup is organized into a few layers:
 4. Installs development tools
 5. Configures mise and installs declared runtimes
 6. Installs Tailscale
-7. Installs OpenCode
-8. Links Git and GPG configuration
+7. Installs Docker and Docker Compose
+8. Installs OpenCode
+9. Links Git and GPG configuration
 
 Machine-specific authentication and credentials are intentionally kept outside the repository.
 
@@ -60,6 +70,67 @@ For example, Tailscale is installed automatically, but joining a tailnet is a se
 ```bash
 sudo tailscale up
 ```
+
+GitHub CLI authentication is also performed separately:
+
+```bash
+gh auth login
+```
+
+## Checking the Environment
+
+`check.sh` verifies that the environment is both **installed and configured correctly**.
+
+Run:
+
+```bash
+./check.sh
+```
+
+Checks include:
+
+* Required CLI tools are installed
+* Go, Node.js, and Python are available through mise
+* Docker and Docker Compose are available
+* Docker works without `sudo`
+* OpenCode is installed
+* Repository-managed dotfiles are correctly symlinked
+* mise configuration is correctly symlinked
+* Git commit signing is enabled
+* GitHub CLI is authenticated
+
+A successful check looks like:
+
+```text
+Shell & Terminal
+  ✓ Zsh                installed
+  ✓ tmux               installed
+  ✓ fzf                installed
+  ...
+
+Languages
+  ✓ Go                 go1.27.1 linux/amd64
+  ✓ Node               v24.20.0
+  ✓ Python             3.14.7
+
+Containers
+  ✓ Docker             installed
+  ✓ Compose             5.5.1
+  ✓ Docker access      without sudo
+
+Configuration
+  ✓ .zshrc             configured
+  ✓ .gitconfig         configured
+  ✓ .tmux.conf         configured
+  ✓ mise config        configured
+  ✓ GPG signing        enabled
+  ✓ GitHub CLI         authenticated
+
+────────────────────────────────────────
+✓ All checks passed
+```
+
+The check exits with a non-zero status if any required component or configuration is missing, making it useful for validating a fresh machine after provisioning.
 
 ## Repository Structure
 
@@ -77,13 +148,16 @@ linux-setup/
 │   └── apt.txt
 ├── scripts/
 │   ├── install-bun.sh
+│   ├── install-docker.sh
 │   ├── install-mise.sh
 │   ├── install-opencode.sh
 │   ├── install-tailscale.sh
 │   ├── install-uv.sh
 │   ├── install-zsh.sh
 │   └── lib.sh
+├── check.sh
 ├── install.sh
+├── update.sh
 ├── .gitignore
 └── README.md
 ```
@@ -105,7 +179,22 @@ This keeps the repository declarative while allowing mise to resolve and install
 
 ## Updating
 
-Different parts of the environment have different update mechanisms.
+The environment can be updated with:
+
+```bash
+./update.sh
+```
+
+This updates:
+
+* Ubuntu packages
+* mise itself
+* mise-managed runtimes
+* uv-installed tools
+* Oh My Zsh
+* Zsh plugins
+
+Individual components can also be updated manually when appropriate.
 
 ### Ubuntu packages
 
@@ -122,7 +211,7 @@ Update mise itself:
 mise self-update
 ```
 
-Update installed mise-managed tools as desired:
+Update installed mise-managed tools:
 
 ```bash
 mise upgrade
@@ -134,19 +223,15 @@ mise upgrade
 uv tool upgrade --all
 ```
 
-### Bun packages
-
-```bash
-bun update
-```
-
 ### Oh My Zsh
 
 ```bash
 omz update
 ```
 
-The bootstrap script is intentionally focused on **provisioning**, not upgrading everything on the machine. Updates should be performed explicitly.
+Bun is intentionally not updated by `update.sh` because `bun update` operates on a project's dependencies rather than updating the Bun runtime itself.
+
+The update script is intentionally focused on the tools managed by this repository. Project-specific dependencies should be updated within their respective projects.
 
 ## Configuration Philosophy
 
@@ -168,9 +253,10 @@ This repository separates **portable configuration** from **machine-specific sta
 * API keys
 * Passwords
 * Tailscale authentication state
+* GitHub authentication state
 * Other machine-specific credentials
 
-Configuration files in `home/` are symlinked into `$HOME`, keeping the repository as the source of truth.
+Configuration files in `home/` and `mise/` are symlinked into the appropriate locations, keeping the repository as the source of truth.
 
 ## Fresh Machine
 
@@ -180,9 +266,20 @@ The ultimate test for this repository is a completely fresh Ubuntu VM.
 git clone https://github.com/acp9191/linux-setup.git
 cd linux-setup
 ./install.sh
+./check.sh
 ```
 
-After installation, authenticate machine-specific services such as Tailscale and configure any credentials required by development tools.
+After installation, authenticate machine-specific services such as Tailscale and GitHub CLI, then run the checks again:
+
+```bash
+./check.sh
+```
+
+The goal is for a fresh machine to end with:
+
+```text
+✓ All checks passed
+```
 
 ---
 
