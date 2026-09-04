@@ -18,6 +18,7 @@ eza                    # Modern alternative to ls
 tree                   # Display directory trees
 tmux                   # Terminal multiplexer
 zoxide                 # Smarter cd
+direnv                 # Automatically loads project-specific environment variables
 
 # Git & data
 gh                     # GitHub's official command-line interface
@@ -25,6 +26,7 @@ git                    # Version control
 git-delta              # Better Git diff viewer with syntax highlighting
 gnupg                  # GPG encryption and Git commit signing
 jq                     # JSON processor
+yq                     # YAML processor, analogous to jq
 
 # Search & inspection
 ripgrep                # Fast text search

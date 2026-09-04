@@ -49,3 +49,6 @@ eval "$(mise activate zsh)"
 # OpenCode
 export PATH="$HOME/.opencode/bin:$PATH"
 
+# direnv
+eval "$(direnv hook zsh)"
+
