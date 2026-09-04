@@ -1,6 +1,6 @@
 [user]
     name = Avery Peterson
-    email = averypeterson115@gmail.com
+    email = 26026736+acp9191@users.noreply.github.com
     signingkey = CB727584EB9C70ED
 
 [commit]
@@ -8,3 +8,30 @@
 
 [init]
     defaultBranch = main
+
+[core]
+    editor = vi
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    side-by-side = true
+    line-numbers = true
+
+[merge]
+    conflictstyle = zdiff3
+
+[diff]
+    colorMoved = default
+
+[pull]
+    rebase = true
+
+[rerere]
+    enabled = true
+
+[push]
+    autoSetupRemote = true
