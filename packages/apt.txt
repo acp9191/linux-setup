@@ -20,6 +20,7 @@ tmux                   # Terminal multiplexer
 zoxide                 # Smarter cd
 
 # Git & data
+gh                     # GitHub's official command-line interface
 git                    # Version control
 gnupg                  # GPG encryption and Git commit signing
 jq                     # JSON processor

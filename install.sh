@@ -37,6 +37,7 @@ header "Development tools"
 "$REPO/scripts/install-bun.sh"
 "$REPO/scripts/install-mise.sh"
 "$REPO/scripts/install-tailscale.sh"
+"$REPO/scripts/install-docker.sh"
 "$REPO/scripts/install-opencode.sh"
 
 mkdir -p "$HOME/.config/mise"
