@@ -15,7 +15,7 @@ header "System packages"
 run_with_spinner "Updating package lists" sudo apt update
 run_with_spinner \
     "Installing system packages" \
-    bash -c "xargs sudo apt install -y < '$REPO/packages/apt.txt'"
+    bash -c "sed 's/[[:space:]]*#.*\$//' '$REPO/packages/apt.txt' | grep -vE '^[[:space:]]*$' | xargs sudo apt install -y"
 
 section_done
 

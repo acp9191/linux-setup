@@ -1,17 +1,34 @@
-build-essential
-ca-certificates
-curl
-fd-find
-fzf
-git
-gnupg
-htop
-jq
-openssh-server
-ripgrep
-tmux
-tree
-unzip
-wget
-zoxide
-zsh
+# Build & development
+build-essential        # Compiler and standard build tools
+shellcheck             # Static analysis for shell scripts
+
+# Core utilities
+ca-certificates        # Trusted CA certificates for HTTPS
+curl                   # Transfer data from URLs
+wget                   # Download files
+unzip                  # Extract ZIP archives
+zip                    # Create ZIP archives
+
+# Shell & terminal
+zsh                    # Preferred shell
+fzf                    # Fuzzy finder
+fd-find                # Fast alternative to find
+bat                    # Better cat with syntax highlighting
+eza                    # Modern alternative to ls
+tree                   # Display directory trees
+tmux                   # Terminal multiplexer
+zoxide                 # Smarter cd
+
+# Git & data
+git                    # Version control
+gnupg                  # GPG encryption and Git commit signing
+jq                     # JSON processor
+
+# Search & inspection
+ripgrep                # Fast text search
+lsof                   # Inspect open files and network connections
+ncdu                   # Interactive disk usage analyzer
+
+# Networking
+openssh-server         # SSH server
+net-tools              # Legacy networking tools such as netstat
