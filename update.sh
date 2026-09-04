@@ -31,6 +31,14 @@ run_with_spinner \
     "Updating Oh My Zsh" \
     bash -c 'git -C "$HOME/.oh-my-zsh" pull --ff-only'
 
+run_with_spinner \
+    "Updating zsh-autosuggestions" \
+    bash -c 'git -C "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions" pull --ff-only'
+
+run_with_spinner \
+    "Updating zsh-syntax-highlighting" \
+    bash -c 'git -C "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" pull --ff-only'
+
 section_done
 
 printf "\n${GREEN}${BOLD}✓ Update complete!${RESET}\n\n"
