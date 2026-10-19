@@ -294,7 +294,7 @@ Agent forwarding lets root on the VM use the key while you are connected. To use
 GitHub Actions runs on every push and pull request:
 
 * **ShellCheck** lints every script.
-* **Install** runs `./install.sh` twice on a fresh `ubuntu-24.04` runner (the second run confirms it is idempotent), confirms the install left the repository unchanged, runs `./check.sh`, then starts the weekly update service to confirm it works under systemd.
+* **Install** runs `./install.sh` twice on fresh `ubuntu-24.04` and `ubuntu-26.04` runners (the second run confirms it is idempotent), confirms the install left the repository unchanged, runs `./check.sh`, then starts the weekly update service to confirm it works under systemd.
 
 Dependabot opens pull requests when the GitHub Actions used in CI have new versions.
 

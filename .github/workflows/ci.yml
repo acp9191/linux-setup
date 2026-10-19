@@ -14,7 +14,13 @@ jobs:
         run: shellcheck -x -S warning ./*.sh scripts/*.sh
 
   install:
-    runs-on: ubuntu-24.04
+    name: install (${{ matrix.os }})
+    strategy:
+      # Run every release to completion, so a 26.04 failure doesn't hide 24.04 results.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
       # Lets `gh auth status` pass and avoids GitHub API rate limits in mise.
