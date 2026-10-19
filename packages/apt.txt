@@ -8,6 +8,8 @@ curl                   # Transfer data from URLs
 wget                   # Download files
 unzip                  # Extract ZIP archives
 zip                    # Create ZIP archives
+rsync                  # Fast file copying and syncing
+vim                    # Text editor (core.editor)
 
 # Shell & terminal
 zsh                    # Preferred shell
@@ -32,9 +34,11 @@ yq                     # YAML processor, analogous to jq
 ripgrep                # Fast text search
 lsof                   # Inspect open files and network connections
 ncdu                   # Interactive disk usage analyzer
+htop                   # Interactive process viewer
 
 # Networking
 openssh-server         # SSH server
+mosh                   # Roaming SSH that survives sleep and network changes
 net-tools              # Legacy networking tools such as netstat
 
 # System

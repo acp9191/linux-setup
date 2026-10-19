@@ -44,6 +44,7 @@ link_config "allowed_signers" "$REPO/home/.config/git/allowed_signers" "$HOME/.c
 
 section "System"
 
+"$REPO/scripts/install-time-locale.sh"
 "$REPO/scripts/install-auto-updates.sh"
 "$REPO/scripts/install-update-timer.sh"
 "$REPO/scripts/install-security.sh"

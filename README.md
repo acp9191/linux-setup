@@ -20,7 +20,9 @@ This repository contains my personal configuration and provisioning scripts for 
   * Python 3.14
   * Go
 * **Tailscale** — private networking between machines
-* **Docker** — container runtime and Compose
+* **mosh** — SSH that survives sleep, Wi-Fi changes, and roaming
+* **Docker** — container runtime and Compose, with capped container logs
+* **Time & locale** — Eastern time (so scheduled jobs run at night) and en_US.UTF-8
 * **OpenCode** — AI coding agent
 * **Automatic updates** — unattended-upgrades for Ubuntu, Docker, and Tailscale packages
 * **Security** — key-only SSH and a firewall that only allows SSH over Tailscale
@@ -103,6 +105,7 @@ Checks include:
 * Automatic updates and the weekly tool update timer are enabled
 * Docker and Tailscale apt repositories match the running release
 * The firewall is enabled and SSH is key-only
+* Docker container logs are capped and the timezone is set
 * Repository-managed dotfiles are correctly symlinked
 * mise configuration is correctly symlinked
 * Git commit signing is enabled
@@ -156,6 +159,8 @@ linux-setup/
 │       └── allowed_signers
 ├── mise/
 │   └── config.toml
+├── docker/
+│   └── daemon.json
 ├── apt/
 │   ├── 20auto-upgrades
 │   └── 52unattended-upgrades-local
@@ -175,6 +180,7 @@ linux-setup/
 │   ├── install-opencode.sh
 │   ├── install-security.sh
 │   ├── install-tailscale.sh
+│   ├── install-time-locale.sh
 │   ├── install-update-timer.sh
 │   ├── install-uv.sh
 │   ├── install-zsh.sh
@@ -211,7 +217,7 @@ This keeps the repository declarative while allowing mise to resolve and install
 * Ubuntu security **and** regular updates (`-security`, `-updates`)
 * Docker and Tailscale from their apt repositories
 * Unused kernels and dependencies are removed afterwards
-* If an update requires a restart, the machine **reboots automatically at 04:00** (system time, UTC by default)
+* If an update requires a restart, the machine **reboots automatically at 04:00** local time (Eastern; see [Time & Locale](#time--locale))
 
 The configuration lives in `apt/` and is copied into `/etc/apt/apt.conf.d/`. To disable automatic reboots, set `Unattended-Upgrade::Automatic-Reboot "false";` in `apt/52unattended-upgrades-local` and re-run `./install.sh`.
 
@@ -271,6 +277,33 @@ On a fresh VM, connect Tailscale, reconnect over SSH using the machine's Tailsca
 If you are ever locked out, use your cloud provider's web console and run `sudo ufw disable`.
 
 > Docker-published ports (`docker run -p 8080:80`) bypass `ufw` and are reachable publicly. Bind them to localhost or the Tailscale IP instead, e.g. `-p 127.0.0.1:8080:80`.
+
+## mosh
+
+`mosh` keeps a terminal session alive across laptop sleep, Wi-Fi changes, and flaky connections, and pairs well with tmux. The server is installed on the VM; install the client on the Mac and connect the same way as `ssh`:
+
+```bash
+brew install mosh
+mosh vm
+```
+
+It runs over Tailscale (the firewall already allows all traffic on `tailscale0`).
+
+## Docker Logs
+
+Docker's default `json-file` log driver keeps container logs forever. `docker/daemon.json` caps them at three 10 MB files per container. `install.sh` merges it into any existing `/etc/docker/daemon.json` (other settings are kept), validates the result, and restarts Docker only when something changed.
+
+The limit applies to containers created after the change; recreate existing ones (`docker compose up -d --force-recreate`) to pick it up.
+
+## Time & Locale
+
+The timezone is set to `America/New_York`, so the 04:00 automatic reboot and other scheduled jobs happen overnight Eastern time. To use a different one:
+
+```bash
+TIMEZONE=Europe/London ./install.sh
+```
+
+The `en_US.UTF-8` locale is generated if missing, since the Mac sends `LANG=en_US.UTF-8` over SSH and `mosh-server` refuses to start without it.
 
 ## Commit Signing
 

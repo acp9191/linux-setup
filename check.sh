@@ -71,6 +71,9 @@ check_command "bat" batcat
 check_command "eza" eza
 check_command "zoxide" zoxide
 check_command "direnv" direnv
+check_command "htop" htop
+check_command "vim" vim
+check_command "mosh" mosh-server
 
 section "Development"
 
@@ -102,6 +105,12 @@ if docker compose version >/dev/null 2>&1; then
     ok "Compose" "$(docker compose version --short)"
 else
     check_fail "Compose" "not available"
+fi
+
+if [ "$(jq -r '."log-opts"."max-size" // empty' /etc/docker/daemon.json 2>/dev/null)" != "" ]; then
+    ok "Docker logs" "capped at $(jq -r '."log-opts"."max-size"' /etc/docker/daemon.json) × $(jq -r '."log-opts"."max-file" // 1' /etc/docker/daemon.json)"
+else
+    check_fail "Docker logs" "not capped"
 fi
 
 if docker info >/dev/null 2>&1; then
@@ -146,6 +155,12 @@ check_repo() {
         ok "$name repo" "$codename"
     fi
 }
+
+if [ "$(timedatectl show --property=Timezone --value 2>/dev/null)" != "Etc/UTC" ]; then
+    ok "Timezone" "$(timedatectl show --property=Timezone --value)"
+else
+    check_fail "Timezone" "UTC (scheduled jobs run at UTC times)"
+fi
 
 check_repo "Docker" docker
 check_repo "Tailscale" tailscale
