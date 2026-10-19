@@ -15,8 +15,8 @@ arch="$(dpkg --print-architecture)"
 sources_dir=/etc/apt/sources.list.d
 
 if ! command -v curl >/dev/null 2>&1; then
-    step "curl" "installed · new" \
-        bash -c 'sudo apt-get update && sudo apt-get install -y curl ca-certificates'
+    step "Package lists" "updated" apt_get update
+    step "curl" "installed · new" apt_get install -y curl ca-certificates
 fi
 
 setup_repo() {

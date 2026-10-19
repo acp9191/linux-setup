@@ -13,8 +13,8 @@ section "System packages"
 "$REPO/scripts/install-apt-repos.sh"
 mapfile -t packages < <(sed 's/[[:space:]]*#.*$//' "$REPO/packages/apt.txt" | grep -vE '^[[:space:]]*$')
 
-step "Package lists" "updated" sudo apt update
-step "Packages" "${#packages[@]} installed" sudo apt install -y "${packages[@]}"
+step "Package lists" "updated" apt_get update
+step "Packages" "${#packages[@]} installed" apt_get install -y "${packages[@]}"
 
 section "Shell"
 

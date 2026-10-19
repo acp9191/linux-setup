@@ -5,7 +5,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO/scripts/lib.sh"
 
 # From the repository set up by install-apt-repos.sh (same packages as get.docker.com).
-ensure_tool "Docker" docker sudo apt-get install -y \
+ensure_tool "Docker" docker apt_get install -y \
     docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl enable --now --quiet docker
 

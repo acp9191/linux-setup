@@ -53,14 +53,14 @@ else
 
     # Also repairs repos disabled by a release upgrade, before apt reads them.
     "$REPO/scripts/install-apt-repos.sh"
-    step "Package lists" "updated" sudo apt update
+    step "Package lists" "updated" apt_get update
 
     upgradable="$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst ' || true)"
 
     if [ "$upgradable" -eq 0 ]; then
         ok "Packages" "up to date"
     else
-        step "Packages" "$upgradable upgraded" sudo apt upgrade -y
+        step "Packages" "$upgradable upgraded" apt_get upgrade -y
     fi
 fi
 

@@ -117,6 +117,18 @@ step() {
     fi
 }
 
+# apt-get for scripts: waits up to 10 minutes for unattended-upgrades (or any
+# other apt run) to release the dpkg lock instead of failing after a short
+# timeout, never stops to ask a question hidden behind a spinner, and keeps
+# locally modified config files on upgrade.
+apt_get() {
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+        -o DPkg::Lock::Timeout=600 \
+        -o Dpkg::Options::=--force-confdef \
+        -o Dpkg::Options::=--force-confold \
+        "$@"
+}
+
 link_config() {
     ln -sf "$2" "$3"
     ok "$1" "linked"
