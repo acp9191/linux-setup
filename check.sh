@@ -129,6 +129,27 @@ else
     check_fail "Tool updates" "timer not enabled"
 fi
 
+source /etc/os-release
+codename="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+
+check_repo() {
+    local name="$1"
+    local file="/etc/apt/sources.list.d/$2.sources"
+
+    if [ ! -f "$file" ]; then
+        check_fail "$name repo" "missing (run ./install.sh)"
+    elif grep -qix 'Enabled: no' "$file"; then
+        check_fail "$name repo" "disabled (run ./install.sh)"
+    elif ! grep -qx "Suites: $codename" "$file"; then
+        check_fail "$name repo" "not set to $codename (run ./install.sh)"
+    else
+        ok "$name repo" "$codename"
+    fi
+}
+
+check_repo "Docker" docker
+check_repo "Tailscale" tailscale
+
 if [ -f /etc/ssh/sshd_config.d/10-linux-setup.conf ]; then
     ok "SSH" "key-only logins"
 elif [ ! -s "$HOME/.ssh/authorized_keys" ]; then

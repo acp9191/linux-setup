@@ -10,6 +10,7 @@ keep_sudo_alive
 
 section "System packages"
 
+"$REPO/scripts/install-apt-repos.sh"
 mapfile -t packages < <(sed 's/[[:space:]]*#.*$//' "$REPO/packages/apt.txt" | grep -vE '^[[:space:]]*$')
 
 step "Package lists" "updated" sudo apt update

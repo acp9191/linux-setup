@@ -38,6 +38,27 @@ jobs:
           test -z "$(git status --porcelain)"
       - name: Check
         run: ./check.sh
+      - name: Repairs repos after a release upgrade
+        run: |
+          # Simulate what do-release-upgrade leaves behind: repos disabled and
+          # pointing at the old release, plus stale duplicates whose conflicting
+          # Signed-By would make `apt update` fail if left in place.
+          for repo in docker tailscale; do
+            sudo sed -i -e 's/^Suites: .*/Suites: jammy/' -e '$a Enabled: no' \
+              "/etc/apt/sources.list.d/$repo.sources"
+          done
+          echo "deb [signed-by=/usr/share/keyrings/stale.gpg] https://download.docker.com/linux/ubuntu jammy stable" \
+            | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+          echo "deb [signed-by=/usr/share/keyrings/stale.gpg] https://pkgs.tailscale.com/stable/ubuntu jammy main" \
+            | sudo tee /etc/apt/sources.list.d/tailscale.list.distUpgrade >/dev/null
+          if ./check.sh >/dev/null; then
+            echo "check.sh should have flagged the disabled repos" >&2
+            exit 1
+          fi
+          ./install.sh
+          ./check.sh
+          test ! -e /etc/apt/sources.list.d/docker.list
+          sudo apt-get update
       - name: Run scheduled tool update
         run: |
           export XDG_RUNTIME_DIR="/run/user/$(id -u)"

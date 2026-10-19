@@ -101,6 +101,7 @@ Checks include:
 * Docker works without `sudo`
 * OpenCode is installed
 * Automatic updates and the weekly tool update timer are enabled
+* Docker and Tailscale apt repositories match the running release
 * The firewall is enabled and SSH is key-only
 * Repository-managed dotfiles are correctly symlinked
 * mise configuration is correctly symlinked
@@ -166,6 +167,7 @@ linux-setup/
 ├── packages/
 │   └── apt.txt
 ├── scripts/
+│   ├── install-apt-repos.sh
 │   ├── install-auto-updates.sh
 │   ├── install-bun.sh
 │   ├── install-docker.sh
@@ -221,7 +223,17 @@ sudo unattended-upgrade --dry-run --debug
 
 Logs are written to `/var/log/unattended-upgrades/`.
 
-Ubuntu release upgrades (e.g. 24.04 → 26.04) are never applied automatically; run `sudo do-release-upgrade` deliberately when you're ready. ESM Apps updates require an [Ubuntu Pro](https://ubuntu.com/pro) subscription (`sudo pro attach`); once attached, they are picked up automatically.
+Ubuntu release upgrades (e.g. 24.04 → 26.04) are never applied automatically; run `sudo do-release-upgrade` deliberately when you're ready, then `./install.sh`.
+
+### Third-party repositories
+
+Docker and Tailscale are installed with apt from their official repositories, which `scripts/install-apt-repos.sh` defines in `/etc/apt/sources.list.d/{docker,tailscale}.sources`. Every `./install.sh` and `./update.sh` run rewrites them for the running Ubuntu release, before `apt update`:
+
+* A release upgrade disables third-party repositories and leaves them pointing at the old release; the next run re-enables them for the new one.
+* Stale duplicates (installer `.list` files, `.distUpgrade` leftovers) are removed, since a conflicting `Signed-By` makes `apt update` fail.
+* If a repository has no packages for a brand-new release yet, it is left unchanged with a warning instead of breaking the install.
+
+`check.sh` fails if either repository is missing, disabled, or set to a different release. ESM Apps updates require an [Ubuntu Pro](https://ubuntu.com/pro) subscription (`sudo pro attach`); once attached, they are picked up automatically.
 
 ### Developer tools
 
@@ -294,7 +306,7 @@ Agent forwarding lets root on the VM use the key while you are connected. To use
 GitHub Actions runs on every push and pull request:
 
 * **ShellCheck** lints every script.
-* **Install** runs `./install.sh` twice on fresh `ubuntu-24.04` and `ubuntu-26.04` runners (the second run confirms it is idempotent), confirms the install left the repository unchanged, runs `./check.sh`, then starts the weekly update service to confirm it works under systemd.
+* **Install** runs `./install.sh` twice on fresh `ubuntu-24.04` and `ubuntu-26.04` runners (the second run confirms it is idempotent), confirms the install left the repository unchanged, runs `./check.sh`, simulates a release upgrade (disabled repos, old release, conflicting duplicates) and confirms `./install.sh` repairs it, then starts the weekly update service to confirm it works under systemd.
 
 Dependabot opens pull requests when the GitHub Actions used in CI have new versions.
 

@@ -4,4 +4,6 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO/scripts/lib.sh"
 
-ensure_tool "Tailscale" tailscale bash -c 'curl -fsSL https://tailscale.com/install.sh | sh'
+# From the repository set up by install-apt-repos.sh.
+ensure_tool "Tailscale" tailscale sudo apt-get install -y tailscale
+sudo systemctl enable --now --quiet tailscaled

@@ -51,6 +51,8 @@ else
 
     section "System packages"
 
+    # Also repairs repos disabled by a release upgrade, before apt reads them.
+    "$REPO/scripts/install-apt-repos.sh"
     step "Package lists" "updated" sudo apt update
 
     upgradable="$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst ' || true)"
