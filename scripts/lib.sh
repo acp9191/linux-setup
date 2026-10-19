@@ -4,6 +4,9 @@
 # usable before a new shell has been opened.
 export PATH="$HOME/.opencode/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 
+# Keep mise's "new version available" notice out of the output.
+export MISE_HIDE_UPDATE_WARNING=1
+
 # Colors
 if [ -t 1 ]; then
     RESET='\033[0m'
@@ -23,61 +26,153 @@ else
     YELLOW=''
 fi
 
-info() {
-    printf "  ${BLUE}→${RESET} %s\n" "$1"
+# Output
+#
+# Every item is one aligned line:
+#
+#   ✓ Docker               29.9.1
+#   ! Firewall             off until Tailscale is connected
+
+banner() {
+    printf "\n${BOLD}%s${RESET}\n${DIM}%s${RESET}\n" "$1" "$2"
 }
 
-success() {
-    printf "  ${GREEN}✓${RESET} %s\n" "$1"
+section() {
+    printf "\n${BOLD}%s${RESET}\n" "$1"
 }
 
-warning() {
-    printf "  ${YELLOW}!${RESET} %s\n" "$1"
+ok() {
+    printf "  ${GREEN}✓${RESET} %-20s ${DIM}%s${RESET}\n" "$1" "${2:-}"
 }
 
-error() {
-    printf "  ${RED}✗${RESET} %s\n" "$1" >&2
+warn() {
+    printf "  ${YELLOW}!${RESET} %-20s %s\n" "$1" "${2:-}"
 }
 
-header() {
-    printf "\n${BOLD}${BLUE}==> %s${RESET}\n\n" "$1"
+fail() {
+    printf "  ${RED}✗${RESET} %-20s %s\n" "$1" "${2:-}"
 }
 
-section_done() {
-    printf "${DIM}└────────────────────────────────────────${RESET}\n"
+finish() {
+    local duration
+
+    if [ "$SECONDS" -ge 60 ]; then
+        duration="$((SECONDS / 60))m $((SECONDS % 60))s"
+    else
+        duration="${SECONDS}s"
+    fi
+
+    printf "\n${GREEN}${BOLD}✓ %s${RESET} ${DIM}in %s${RESET}\n\n" "$1" "$duration"
 }
 
-spinner() {
-    local pid=$1
-    local message="$2"
-    local frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    local i=0
+# Commands
 
-    while kill -0 "$pid" 2>/dev/null; do
-        local frame="${frames:i++%${#frames}:1}"
-        printf "\r  ${BLUE}${frame}${RESET} %s" "$message"
-        sleep 0.1
-    done
-
-    printf "\r\033[K"
-}
-
-run_with_spinner() {
-    local message="$1"
+# Run a command quietly, showing a spinner on interactive terminals. On
+# failure, its output is kept for show_log.
+spin() {
+    local label="$1"
     shift
 
-    "$@" >/tmp/linux-setup-output 2>&1 &
+    SPIN_LOG="$(mktemp)"
+    "$@" >"$SPIN_LOG" 2>&1 &
     local pid=$!
 
-    spinner "$pid" "$message"
+    if [ -t 1 ]; then
+        local frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+        local i=0
+
+        while kill -0 "$pid" 2>/dev/null; do
+            printf "\r  ${BLUE}%s${RESET} %s" "${frames:i++%${#frames}:1}" "$label"
+            sleep 0.1
+        done
+
+        printf "\r\033[K"
+    fi
 
     if wait "$pid"; then
-        success "$message"
-        rm -f /tmp/linux-setup-output
+        rm -f "$SPIN_LOG"
+        return 0
+    fi
+
+    return 1
+}
+
+show_log() {
+    sed 's/^/      /' "$SPIN_LOG"
+    rm -f "$SPIN_LOG"
+}
+
+# Run a command with a spinner, then print one result line.
+step() {
+    local name="$1"
+    local detail="$2"
+    shift 2
+
+    if spin "$name" "$@"; then
+        ok "$name" "$detail"
     else
-        error "$message"
-        cat /tmp/linux-setup-output >&2
-        rm -f /tmp/linux-setup-output
+        fail "$name" "failed"
+        show_log
+        return 1
+    fi
+}
+
+link_config() {
+    ln -sf "$2" "$3"
+    ok "$1" "linked"
+}
+
+# Tools
+
+version_of() {
+    case "$1" in
+        bun) bun --version ;;
+        docker) docker --version | sed -E 's/^Docker version ([^,]+).*/\1/' ;;
+        mise) mise --version | cut -d' ' -f1 ;;
+        opencode) opencode --version ;;
+        tailscale) tailscale version | head -1 ;;
+        uv) uv --version | cut -d' ' -f2 ;;
+    esac 2>/dev/null
+}
+
+# Print a tool's version, installing it first if it's missing.
+ensure_tool() {
+    local name="$1"
+    local bin="$2"
+    shift 2
+
+    if command -v "$bin" >/dev/null 2>&1; then
+        ok "$name" "$(version_of "$bin")"
+    elif spin "$name" "$@"; then
+        ok "$name" "$(version_of "$bin") · new"
+    else
+        fail "$name" "install failed"
+        show_log
+        return 1
+    fi
+}
+
+# Run a tool's self-update and print "old → new" or "up to date".
+update_tool() {
+    local name="$1"
+    local bin="$2"
+    local before
+    local after
+    shift 2
+
+    before="$(version_of "$bin")"
+
+    if spin "$name" "$@"; then
+        after="$(version_of "$bin")"
+
+        if [ "$before" = "$after" ]; then
+            ok "$name" "$after · up to date"
+        else
+            ok "$name" "$before → $after"
+        fi
+    else
+        fail "$name" "update failed"
+        show_log
         return 1
     fi
 }

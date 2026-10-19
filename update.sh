@@ -4,44 +4,59 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO/scripts/lib.sh"
 
-printf "\n"
-printf "${BOLD}Linux VM Update${RESET}\n"
-printf "${DIM}Updating your development environment${RESET}\n\n"
+# Pull a git checkout and print "old → new" commits or "up to date".
+update_repo() {
+    local name="$1"
+    local dir="$2"
+    local before
+    local after
+
+    before="$(git -C "$dir" rev-parse --short HEAD)"
+
+    if spin "$name" git -C "$dir" pull --ff-only; then
+        after="$(git -C "$dir" rev-parse --short HEAD)"
+
+        if [ "$before" = "$after" ]; then
+            ok "$name" "up to date"
+        else
+            ok "$name" "$before → $after"
+        fi
+    else
+        fail "$name" "update failed"
+        show_log
+        return 1
+    fi
+}
+
+banner "Linux VM Update" "Updating your development environment"
 
 keep_sudo_alive
 
-header "System packages"
+section "System packages"
 
-run_with_spinner "Updating package lists" sudo apt update
-run_with_spinner "Upgrading system packages" sudo apt upgrade -y
+step "Package lists" "updated" sudo apt update
 
-section_done
+upgradable="$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst ' || true)"
 
-header "Development tools"
+if [ "$upgradable" -eq 0 ]; then
+    ok "Packages" "up to date"
+else
+    step "Packages" "$upgradable upgraded" sudo apt upgrade -y
+fi
 
-run_with_spinner "Updating mise" mise self-update -y
-run_with_spinner "Upgrading mise tools" mise upgrade
-run_with_spinner "Updating uv" uv self update
-run_with_spinner "Updating uv tools" uv tool upgrade --all
-run_with_spinner "Updating Bun" bun upgrade
-run_with_spinner "Updating OpenCode" opencode upgrade
+section "Development tools"
 
-section_done
+update_tool "mise" mise mise self-update -y
+step "mise tools" "upgraded" mise upgrade
+update_tool "uv" uv uv self update
+step "uv tools" "upgraded" uv tool upgrade --all
+update_tool "Bun" bun bun upgrade
+update_tool "OpenCode" opencode opencode upgrade
 
-header "Shell"
+section "Shell"
 
-run_with_spinner \
-    "Updating Oh My Zsh" \
-    bash -c 'git -C "$HOME/.oh-my-zsh" pull --ff-only'
+update_repo "Oh My Zsh" "$HOME/.oh-my-zsh"
+update_repo "Autosuggestions" "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+update_repo "Syntax highlighting" "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
 
-run_with_spinner \
-    "Updating zsh-autosuggestions" \
-    bash -c 'git -C "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions" pull --ff-only'
-
-run_with_spinner \
-    "Updating zsh-syntax-highlighting" \
-    bash -c 'git -C "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" pull --ff-only'
-
-section_done
-
-printf "\n${GREEN}${BOLD}✓ Update complete!${RESET}\n\n"
+finish "Update complete"

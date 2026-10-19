@@ -4,26 +4,13 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO/scripts/lib.sh"
 
-if command -v docker >/dev/null 2>&1; then
-    success "Docker already installed: $(docker --version)"
-else
-    info "Installing Docker"
+ensure_tool "Docker" docker bash -c 'curl -fsSL https://get.docker.com | sh'
 
-    curl -fsSL https://get.docker.com | sh
-
-    success "Docker installed"
-fi
-
-if getent group docker >/dev/null 2>&1; then
-    success "Docker group exists"
-else
-    sudo groupadd docker
-    success "Docker group created"
-fi
+getent group docker >/dev/null 2>&1 || sudo groupadd docker
 
 if id -nG "$USER" | grep -qw docker; then
-    success "User already in docker group"
+    ok "Docker group" "member"
 else
     sudo usermod -aG docker "$USER"
-    warning "Docker group added; log out and back in for it to take effect"
+    warn "Docker group" "added; log out and back in to use it"
 fi

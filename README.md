@@ -111,30 +111,32 @@ A successful check looks like:
 
 ```text
 Shell & Terminal
-  ✓ Zsh                installed
-  ✓ tmux               installed
-  ✓ fzf                installed
+  ✓ Zsh                  installed
+  ✓ tmux                 installed
+  ✓ fzf                  installed
   ...
 
 Languages
-  ✓ Go                 go1.27.1 linux/amd64
-  ✓ Node               v24.20.0
-  ✓ Python             3.14.7
+  ✓ Go                   1.27.2 linux/amd64
+  ✓ Node                 24.22.0
+  ✓ Python               3.14.8
 
 Containers
-  ✓ Docker             installed
-  ✓ Compose             5.5.1
-  ✓ Docker access      without sudo
+  ✓ Docker               29.9.1
+  ✓ Compose              5.5.1
+  ✓ Docker access        without sudo
+
+System
+  ✓ Auto updates         enabled
+  ✓ SSH                  key-only logins
+  ✓ Firewall             enabled
 
 Configuration
-  ✓ .zshrc             configured
-  ✓ .gitconfig         configured
-  ✓ .tmux.conf         configured
-  ✓ mise config        configured
-  ✓ GPG signing        enabled
-  ✓ GitHub CLI         authenticated
+  ✓ .zshrc               linked
+  ✓ .gitconfig           linked
+  ✓ GPG signing          enabled
+  ✓ GitHub CLI auth      authenticated
 
-────────────────────────────────────────
 ✓ All checks passed
 ```
 

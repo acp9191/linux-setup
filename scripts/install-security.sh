@@ -22,9 +22,9 @@ if [ -s "$HOME/.ssh/authorized_keys" ]; then
         "$REPO/ssh/10-linux-setup.conf" /etc/ssh/sshd_config.d/10-linux-setup.conf
     sudo sshd -t
     sudo systemctl try-reload-or-restart ssh
-    success "SSH password logins disabled"
+    ok "SSH" "key-only logins"
 else
-    warning "No ~/.ssh/authorized_keys; leaving SSH password logins enabled"
+    warn "SSH" "password logins allowed until ~/.ssh/authorized_keys has a key"
 fi
 
 # Firewall: allow SSH only over Tailscale. Skipped until Tailscale is connected,
@@ -33,9 +33,9 @@ ssh_client="${SSH_CONNECTION:-}"
 ssh_client="${ssh_client%% *}"
 
 if ! tailscale status >/dev/null 2>&1; then
-    warning "Tailscale not connected; firewall not enabled (run: sudo tailscale up, then ./install.sh)"
+    warn "Firewall" "off until Tailscale is connected (sudo tailscale up, then ./install.sh)"
 elif [ -n "$ssh_client" ] && ! is_tailscale_ip "$ssh_client"; then
-    warning "Connected over the public internet; firewall not enabled (reconnect over Tailscale, then ./install.sh)"
+    warn "Firewall" "off: this session is over the public internet (reconnect over Tailscale, then ./install.sh)"
 else
     sudo ufw default deny incoming >/dev/null
     sudo ufw default allow outgoing >/dev/null
@@ -48,5 +48,5 @@ else
     done
 
     sudo ufw --force enable >/dev/null
-    success "Firewall enabled: SSH only over Tailscale"
+    ok "Firewall" "SSH only over Tailscale"
 fi

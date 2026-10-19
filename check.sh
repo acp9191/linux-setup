@@ -4,25 +4,31 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO/scripts/lib.sh"
 
-printf "\n"
-printf "${BOLD}Linux VM Check${RESET}\n"
-printf "${DIM}Verifying your development environment${RESET}\n"
+banner "Linux VM Check" "Verifying your development environment"
 
 failures=0
+skipped=0
 
-section() {
-    printf "\n${BOLD}%s${RESET}\n" "$1"
+check_fail() {
+    fail "$@"
+    failures=$((failures + 1))
+}
+
+check_skip() {
+    warn "$@"
+    skipped=$((skipped + 1))
 }
 
 check_command() {
     local name="$1"
     local command="$2"
+    local version
 
     if command -v "$command" >/dev/null 2>&1; then
-        printf "  ${GREEN}✓${RESET} %-18s installed\n" "$name"
+        version="$(version_of "$command")"
+        ok "$name" "${version:-installed}"
     else
-        printf "  ${RED}✗${RESET} %-18s not installed\n" "$name"
-        failures=$((failures + 1))
+        check_fail "$name" "not installed"
     fi
 }
 
@@ -32,10 +38,20 @@ check_symlink() {
     local expected="$3"
 
     if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$expected" ]; then
-        printf "  ${GREEN}✓${RESET} %-18s configured\n" "$name"
+        ok "$name" "linked"
     else
-        printf "  ${RED}✗${RESET} %-18s misconfigured\n" "$name"
-        failures=$((failures + 1))
+        check_fail "$name" "not linked to the repository"
+    fi
+}
+
+check_runtime() {
+    local name="$1"
+    shift
+
+    if mise exec -- "$@" >/dev/null 2>&1; then
+        ok "$name" "$(mise exec -- "$@" | sed -E 's/^(go version go|Python |v)//')"
+    else
+        check_fail "$name" "not available through mise"
     fi
 }
 
@@ -58,32 +74,13 @@ check_command "delta" delta
 check_command "uv" uv
 check_command "Bun" bun
 check_command "mise" mise
+check_command "OpenCode" opencode
 
 section "Languages"
 
-if mise exec -- go version >/dev/null 2>&1; then
-    printf "  ${GREEN}✓${RESET} %-18s %s\n" \
-        "Go" "$(mise exec -- go version | sed 's/^go version //')"
-else
-    printf "  ${RED}✗${RESET} %-18s not available through mise\n" "Go"
-    failures=$((failures + 1))
-fi
-
-if mise exec -- node --version >/dev/null 2>&1; then
-    printf "  ${GREEN}✓${RESET} %-18s %s\n" \
-        "Node" "$(mise exec -- node --version)"
-else
-    printf "  ${RED}✗${RESET} %-18s not available through mise\n" "Node"
-    failures=$((failures + 1))
-fi
-
-if mise exec -- python --version >/dev/null 2>&1; then
-    printf "  ${GREEN}✓${RESET} %-18s %s\n" \
-        "Python" "$(mise exec -- python --version | sed 's/^Python //')"
-else
-    printf "  ${RED}✗${RESET} %-18s not available through mise\n" "Python"
-    failures=$((failures + 1))
-fi
+check_runtime "Go" go version
+check_runtime "Node" node --version
+check_runtime "Python" python --version
 
 section "Data & Networking"
 
@@ -96,90 +93,69 @@ section "Containers"
 check_command "Docker" docker
 
 if docker compose version >/dev/null 2>&1; then
-    printf "  ${GREEN}✓${RESET} %-18s %s\n" \
-        "Compose" "$(docker compose version --short)"
+    ok "Compose" "$(docker compose version --short)"
 else
-    printf "  ${RED}✗${RESET} %-18s not available\n" "Compose"
-    failures=$((failures + 1))
+    check_fail "Compose" "not available"
 fi
 
 if docker info >/dev/null 2>&1; then
-    printf "  ${GREEN}✓${RESET} %-18s without sudo\n" "Docker access"
+    ok "Docker access" "without sudo"
 else
-    printf "  ${RED}✗${RESET} %-18s requires sudo\n" "Docker access"
-    failures=$((failures + 1))
+    check_fail "Docker access" "requires sudo"
 fi
 
-section "AI"
-
-check_command "OpenCode" opencode
-
-section "Configuration"
+section "System"
 
 auto_upgrade=""
 eval "$(apt-config shell auto_upgrade APT::Periodic::Unattended-Upgrade 2>/dev/null)"
 
 if [ "$auto_upgrade" = "1" ] \
     && systemctl is-enabled --quiet apt-daily-upgrade.timer 2>/dev/null; then
-    printf "  ${GREEN}✓${RESET} %-18s enabled\n" "Auto updates"
+    ok "Auto updates" "enabled"
 else
-    printf "  ${RED}✗${RESET} %-18s disabled\n" "Auto updates"
-    failures=$((failures + 1))
-fi
-
-if grep -qx 'ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then
-    printf "  ${GREEN}✓${RESET} %-18s enabled\n" "Firewall"
-elif ! tailscale status >/dev/null 2>&1; then
-    printf "  ${YELLOW}!${RESET} %-18s skipped until Tailscale is connected\n" "Firewall"
-else
-    printf "  ${RED}✗${RESET} %-18s disabled\n" "Firewall"
-    failures=$((failures + 1))
+    check_fail "Auto updates" "disabled"
 fi
 
 if [ -f /etc/ssh/sshd_config.d/10-linux-setup.conf ]; then
-    printf "  ${GREEN}✓${RESET} %-18s key-only\n" "SSH logins"
+    ok "SSH" "key-only logins"
 elif [ ! -s "$HOME/.ssh/authorized_keys" ]; then
-    printf "  ${YELLOW}!${RESET} %-18s skipped until an SSH key is authorized\n" "SSH logins"
+    check_skip "SSH" "skipped until an SSH key is authorized"
 else
-    printf "  ${RED}✗${RESET} %-18s password allowed\n" "SSH logins"
-    failures=$((failures + 1))
+    check_fail "SSH" "password logins allowed"
 fi
 
-check_symlink ".zshrc" \
-    "$HOME/.zshrc" \
-    "$REPO/home/.zshrc"
+if grep -qx 'ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then
+    ok "Firewall" "enabled"
+elif ! tailscale status >/dev/null 2>&1; then
+    check_skip "Firewall" "skipped until Tailscale is connected"
+else
+    check_fail "Firewall" "disabled"
+fi
 
-check_symlink ".gitconfig" \
-    "$HOME/.gitconfig" \
-    "$REPO/home/.gitconfig"
+section "Configuration"
 
-check_symlink ".tmux.conf" \
-    "$HOME/.tmux.conf" \
-    "$REPO/home/.tmux.conf"
-
-check_symlink "mise config" \
-    "$HOME/.config/mise/config.toml" \
-    "$REPO/mise/config.toml"
+check_symlink ".zshrc" "$HOME/.zshrc" "$REPO/home/.zshrc"
+check_symlink ".tmux.conf" "$HOME/.tmux.conf" "$REPO/home/.tmux.conf"
+check_symlink ".gitconfig" "$HOME/.gitconfig" "$REPO/home/.gitconfig"
+check_symlink "mise config" "$HOME/.config/mise/config.toml" "$REPO/mise/config.toml"
 
 if [ "$(git config --global commit.gpgsign)" = "true" ]; then
-    printf "  ${GREEN}✓${RESET} %-18s enabled\n" "GPG signing"
+    ok "GPG signing" "enabled"
 else
-    printf "  ${RED}✗${RESET} %-18s disabled\n" "GPG signing"
-    failures=$((failures + 1))
+    check_fail "GPG signing" "disabled"
 fi
 
 if gh auth status >/dev/null 2>&1; then
-    printf "  ${GREEN}✓${RESET} %-18s authenticated\n" "GitHub CLI"
+    ok "GitHub CLI auth" "authenticated"
 else
-    printf "  ${RED}✗${RESET} %-18s not authenticated\n" "GitHub CLI"
-    failures=$((failures + 1))
+    check_fail "GitHub CLI auth" "not authenticated (gh auth login)"
 fi
 
-printf "\n${DIM}────────────────────────────────────────${RESET}\n"
-
-if [ "$failures" -eq 0 ]; then
-    printf "${GREEN}${BOLD}✓ All checks passed${RESET}\n\n"
-else
-    printf "${RED}${BOLD}✗ %s check(s) failed${RESET}\n\n" "$failures"
+if [ "$failures" -gt 0 ]; then
+    printf "\n${RED}${BOLD}✗ %s check(s) failed${RESET}\n\n" "$failures"
     exit 1
+elif [ "$skipped" -gt 0 ]; then
+    printf "\n${GREEN}${BOLD}✓ All checks passed${RESET} ${DIM}· %s skipped${RESET}\n\n" "$skipped"
+else
+    printf "\n${GREEN}${BOLD}✓ All checks passed${RESET}\n\n"
 fi
