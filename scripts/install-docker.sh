@@ -8,7 +8,7 @@ ensure_tool "Docker" docker bash -c 'curl -fsSL https://get.docker.com | sh'
 
 getent group docker >/dev/null 2>&1 || sudo groupadd docker
 
-if id -nG "$USER" | grep -qw docker; then
+if grep -qw docker <<<"$(id -nG "$USER")"; then
     ok "Docker group" "member"
 else
     sudo usermod -aG docker "$USER"

@@ -156,11 +156,15 @@ check_symlink "allowed_signers" "$HOME/.config/git/allowed_signers" "$REPO/home/
 signing_key="$(git config --global user.signingkey || true)"
 signing_key="$(echo "${signing_key#key::}" | awk '{print $2}')"
 
+# Captured first: under pipefail, `ssh-add -L | grep -q` can fail when grep
+# exits early and ssh-add gets SIGPIPE.
+agent_keys="$(ssh-add -L 2>/dev/null || true)"
+
 if [ "$(git config --global commit.gpgsign || true)" != "true" ] \
     || [ "$(git config --global gpg.format || true)" != "ssh" ] \
     || [ -z "$signing_key" ]; then
     check_fail "Commit signing" "not configured for SSH"
-elif ssh-add -L 2>/dev/null | grep -qF "$signing_key"; then
+elif grep -qF "$signing_key" <<<"$agent_keys"; then
     ok "Commit signing" "SSH key available"
 else
     check_skip "Commit signing" "skipped until the signing key is forwarded (ssh -A)"
