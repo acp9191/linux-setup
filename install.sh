@@ -34,16 +34,12 @@ mkdir -p "$HOME/.config/mise"
 link_config "mise config" "$REPO/mise/config.toml" "$HOME/.config/mise/config.toml"
 step "mise tools" "installed" mise install
 
-section "Git & GPG"
+section "Git"
 
 link_config ".gitconfig" "$REPO/home/.gitconfig" "$HOME/.gitconfig"
 
-mkdir -p "$HOME/.gnupg"
-chmod 700 "$HOME/.gnupg"
-ln -sf "$REPO/home/.gnupg/gpg-agent.conf" "$HOME/.gnupg/gpg-agent.conf"
-chmod 600 "$HOME/.gnupg/gpg-agent.conf"
-gpgconf --kill gpg-agent 2>/dev/null || true
-ok "GPG agent" "configured"
+mkdir -p "$HOME/.config/git"
+link_config "allowed_signers" "$REPO/home/.config/git/allowed_signers" "$HOME/.config/git/allowed_signers"
 
 section "System"
 

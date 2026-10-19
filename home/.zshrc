@@ -30,11 +30,8 @@ alias gds="git diff --staged"
 alias gs="git status"
 
 
-# GPG
-export GPG_TTY=$(tty)
-
 # bun completions
-[ -s "/home/avery/.bun/_bun" ] && source "/home/avery/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"

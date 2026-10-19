@@ -13,6 +13,13 @@ else
         'RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
 fi
 
+if [ "$(basename "$(getent passwd "$USER" | cut -d: -f7)")" = "zsh" ]; then
+    ok "Login shell" "zsh"
+else
+    sudo chsh -s "$(command -v zsh)" "$USER"
+    ok "Login shell" "zsh · new, applies at next login"
+fi
+
 install_plugin() {
     local name="$1"
     local repo="$2"

@@ -24,7 +24,7 @@ direnv                 # Automatically loads project-specific environment variab
 gh                     # GitHub's official command-line interface
 git                    # Version control
 git-delta              # Better Git diff viewer with syntax highlighting
-gnupg                  # GPG encryption and Git commit signing
+gnupg                  # GPG, used to verify apt repository keys
 jq                     # JSON processor
 yq                     # YAML processor, analogous to jq
 

@@ -57,6 +57,12 @@ check_runtime() {
 
 section "Shell & Terminal"
 
+if [ "$(basename "$(getent passwd "$USER" | cut -d: -f7)")" = "zsh" ]; then
+    ok "Login shell" "zsh"
+else
+    check_fail "Login shell" "not zsh"
+fi
+
 check_command "Zsh" zsh
 check_command "tmux" tmux
 check_command "fzf" fzf
@@ -145,11 +151,19 @@ check_symlink ".zshrc" "$HOME/.zshrc" "$REPO/home/.zshrc"
 check_symlink ".tmux.conf" "$HOME/.tmux.conf" "$REPO/home/.tmux.conf"
 check_symlink ".gitconfig" "$HOME/.gitconfig" "$REPO/home/.gitconfig"
 check_symlink "mise config" "$HOME/.config/mise/config.toml" "$REPO/mise/config.toml"
+check_symlink "allowed_signers" "$HOME/.config/git/allowed_signers" "$REPO/home/.config/git/allowed_signers"
 
-if [ "$(git config --global commit.gpgsign)" = "true" ]; then
-    ok "GPG signing" "enabled"
+signing_key="$(git config --global user.signingkey || true)"
+signing_key="$(echo "${signing_key#key::}" | awk '{print $2}')"
+
+if [ "$(git config --global commit.gpgsign || true)" != "true" ] \
+    || [ "$(git config --global gpg.format || true)" != "ssh" ] \
+    || [ -z "$signing_key" ]; then
+    check_fail "Commit signing" "not configured for SSH"
+elif ssh-add -L 2>/dev/null | grep -qF "$signing_key"; then
+    ok "Commit signing" "SSH key available"
 else
-    check_fail "GPG signing" "disabled"
+    check_skip "Commit signing" "skipped until the signing key is forwarded (ssh -A)"
 fi
 
 if gh auth status >/dev/null 2>&1; then

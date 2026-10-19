@@ -9,7 +9,7 @@ This repository contains my personal configuration and provisioning scripts for 
 ## What's Included
 
 * **Ubuntu packages** — common CLI and development utilities
-* **Zsh** — Zsh with Oh My Zsh, autosuggestions, and syntax highlighting
+* **Zsh** — Zsh as the login shell, with Oh My Zsh, autosuggestions, and syntax highlighting
 * **tmux** — terminal multiplexer with Vim-style navigation
 * **zoxide** — smarter directory navigation
 * **uv** — Python package and project management
@@ -26,9 +26,9 @@ This repository contains my personal configuration and provisioning scripts for 
 * **Security** — key-only SSH and a firewall that only allows SSH over Tailscale
 * **Git** — global Git configuration, aliases, and delta
 * **GitHub CLI** — GitHub access from the terminal
-* **GPG** — Git commit signing configuration
+* **Commit signing** — SSH-signed Git commits through a forwarded ssh-agent
 * **direnv** — automatic project-specific environment variables
-* **Dotfiles** — shell, tmux, Git, mise, and GPG configuration managed from the repository
+* **Dotfiles** — shell, tmux, Git, and mise configuration managed from the repository
 
 ## Quick Start
 
@@ -58,7 +58,7 @@ After installation, verify the environment:
 The setup is organized into a few layers:
 
 1. Installs system packages from `packages/apt.txt`
-2. Installs and configures Zsh
+2. Installs Zsh and makes it the login shell
 3. Links shell and tmux configuration
 4. Installs development tools
 5. Configures mise and installs declared runtimes
@@ -67,7 +67,7 @@ The setup is organized into a few layers:
 8. Installs OpenCode
 9. Enables automatic package and tool updates
 10. Hardens SSH and enables the firewall
-11. Links Git and GPG configuration
+11. Links Git configuration and SSH allowed signers
 
 Machine-specific authentication and credentials are intentionally kept outside the repository.
 
@@ -135,7 +135,7 @@ System
 Configuration
   ✓ .zshrc               linked
   ✓ .gitconfig           linked
-  ✓ GPG signing          enabled
+  ✓ Commit signing       SSH key available
   ✓ GitHub CLI auth      authenticated
 
 ✓ All checks passed
@@ -151,8 +151,8 @@ linux-setup/
 │   ├── .gitconfig
 │   ├── .tmux.conf
 │   ├── .zshrc
-│   └── .gnupg/
-│       └── gpg-agent.conf
+│   └── .config/git/
+│       └── allowed_signers
 ├── mise/
 │   └── config.toml
 ├── apt/
@@ -180,7 +180,9 @@ linux-setup/
 ├── check.sh
 ├── install.sh
 ├── update.sh
-├── .github/workflows/ci.yml
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/ci.yml
 ├── .gitignore
 └── README.md
 ```
@@ -258,12 +260,43 @@ If you are ever locked out, use your cloud provider's web console and run `sudo 
 
 > Docker-published ports (`docker run -p 8080:80`) bypass `ufw` and are reachable publicly. Bind them to localhost or the Tailscale IP instead, e.g. `-p 127.0.0.1:8080:80`.
 
+## Commit Signing
+
+Commits are signed with an SSH key (`gpg.format = ssh`). The private key never leaves the Mac: the VM signs through the forwarded ssh-agent, so a fresh VM can sign commits as soon as you connect.
+
+One-time setup on the Mac:
+
+```sshconfig
+# ~/.ssh/config
+Host *
+    AddKeysToAgent yes
+    UseKeychain yes
+
+Host vm
+    ForwardAgent yes
+```
+
+```bash
+# Load the signing key into the agent (stored in the Keychain)
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+
+# Register it with GitHub as a signing key, so commits show "Verified"
+gh auth refresh -h github.com -s admin:ssh_signing_key
+gh ssh-key add ~/.ssh/id_ed25519.pub --type signing --title "Commit signing"
+```
+
+On the VM, `ssh-add -L` should list the key, and `git log --show-signature` verifies signatures using `home/.config/git/allowed_signers`.
+
+Agent forwarding lets root on the VM use the key while you are connected. To use a different key, change `user.signingkey` in `home/.gitconfig` and the line in `allowed_signers`.
+
 ## Continuous Integration
 
 GitHub Actions runs on every push and pull request:
 
 * **ShellCheck** lints every script.
-* **Install** runs `./install.sh` twice on a fresh `ubuntu-24.04` runner (the second run confirms it is idempotent), then `./check.sh`, then starts the weekly update service to confirm it works under systemd.
+* **Install** runs `./install.sh` twice on a fresh `ubuntu-24.04` runner (the second run confirms it is idempotent), confirms the install left the repository unchanged, runs `./check.sh`, then starts the weekly update service to confirm it works under systemd.
+
+Dependabot opens pull requests when the GitHub Actions used in CI have new versions.
 
 ## Updating
 
@@ -347,7 +380,7 @@ This repository separates **portable configuration** from **machine-specific sta
 * Shell configuration
 * Git configuration
 * tmux configuration
-* GPG agent configuration
+* SSH allowed signers (public key only)
 * Package lists
 * Runtime versions
 * Installation scripts
