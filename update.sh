@@ -19,7 +19,7 @@ section_done
 
 header "Development tools"
 
-run_with_spinner "Updating mise" mise self-update
+run_with_spinner "Updating mise" mise self-update -y
 run_with_spinner "Upgrading mise tools" mise upgrade
 run_with_spinner "Updating uv tools" uv tool upgrade --all
 
