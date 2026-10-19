@@ -116,6 +116,17 @@ check_command "OpenCode" opencode
 
 section "Configuration"
 
+auto_upgrade=""
+eval "$(apt-config shell auto_upgrade APT::Periodic::Unattended-Upgrade 2>/dev/null)"
+
+if [ "$auto_upgrade" = "1" ] \
+    && systemctl is-enabled --quiet apt-daily-upgrade.timer 2>/dev/null; then
+    printf "  ${GREEN}✓${RESET} %-18s enabled\n" "Auto updates"
+else
+    printf "  ${RED}✗${RESET} %-18s disabled\n" "Auto updates"
+    failures=$((failures + 1))
+fi
+
 check_symlink ".zshrc" \
     "$HOME/.zshrc" \
     "$REPO/home/.zshrc"

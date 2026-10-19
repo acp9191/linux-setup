@@ -20,6 +20,7 @@ This repository contains my personal configuration and provisioning scripts for 
 * **Tailscale** — private networking between machines
 * **Docker** — container runtime and Compose
 * **OpenCode** — AI coding agent
+* **Automatic updates** — unattended-upgrades for Ubuntu, Docker, and Tailscale packages
 * **Git** — global Git configuration, aliases, and delta
 * **GitHub CLI** — GitHub access from the terminal
 * **GPG** — Git commit signing configuration
@@ -61,7 +62,8 @@ The setup is organized into a few layers:
 6. Installs Tailscale
 7. Installs Docker and Docker Compose
 8. Installs OpenCode
-9. Links Git and GPG configuration
+9. Enables automatic package updates
+10. Links Git and GPG configuration
 
 Machine-specific authentication and credentials are intentionally kept outside the repository.
 
@@ -94,6 +96,7 @@ Checks include:
 * Docker and Docker Compose are available
 * Docker works without `sudo`
 * OpenCode is installed
+* Automatic updates are enabled
 * Repository-managed dotfiles are correctly symlinked
 * mise configuration is correctly symlinked
 * Git commit signing is enabled
@@ -144,9 +147,13 @@ linux-setup/
 │       └── gpg-agent.conf
 ├── mise/
 │   └── config.toml
+├── apt/
+│   ├── 20auto-upgrades
+│   └── 52unattended-upgrades-local
 ├── packages/
 │   └── apt.txt
 ├── scripts/
+│   ├── install-auto-updates.sh
 │   ├── install-bun.sh
 │   ├── install-docker.sh
 │   ├── install-mise.sh
@@ -176,6 +183,29 @@ python = "3.14"
 ```
 
 This keeps the repository declarative while allowing mise to resolve and install the appropriate versions.
+
+## Automatic Updates
+
+`install.sh` configures [unattended-upgrades](https://help.ubuntu.com/community/AutomaticSecurityUpdates) so apt packages update themselves daily in the background:
+
+* Ubuntu security **and** regular updates (`-security`, `-updates`)
+* Docker and Tailscale from their apt repositories
+* Unused kernels and dependencies are removed afterwards
+* If an update requires a restart, the machine **reboots automatically at 04:00** (system time, UTC by default)
+
+The configuration lives in `apt/` and is copied into `/etc/apt/apt.conf.d/`. To disable automatic reboots, set `Unattended-Upgrade::Automatic-Reboot "false";` in `apt/52unattended-upgrades-local` and re-run `./install.sh`.
+
+Preview what would be upgraded:
+
+```bash
+sudo unattended-upgrade --dry-run --debug
+```
+
+Logs are written to `/var/log/unattended-upgrades/`.
+
+Ubuntu release upgrades (e.g. 24.04 → 26.04) are never applied automatically; run `sudo do-release-upgrade` deliberately when you're ready. ESM Apps updates require an [Ubuntu Pro](https://ubuntu.com/pro) subscription (`sudo pro attach`); once attached, they are picked up automatically.
+
+Tools installed outside apt (mise, uv, Bun, OpenCode, Oh My Zsh) are still updated with `./update.sh`.
 
 ## Updating
 

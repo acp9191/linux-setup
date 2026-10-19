@@ -36,3 +36,6 @@ ncdu                   # Interactive disk usage analyzer
 # Networking
 openssh-server         # SSH server
 net-tools              # Legacy networking tools such as netstat
+
+# System
+unattended-upgrades    # Automatic background package updates

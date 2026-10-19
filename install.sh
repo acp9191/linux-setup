@@ -49,6 +49,12 @@ run_with_spinner \
     mise install
 section_done
 
+header "Automatic updates"
+
+"$REPO/scripts/install-auto-updates.sh"
+
+section_done
+
 header "Git & GPG"
 
 ln -sf "$REPO/home/.gitconfig" "$HOME/.gitconfig"
