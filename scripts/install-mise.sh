@@ -4,8 +4,6 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO/scripts/lib.sh"
 
-export PATH="$HOME/.local/bin:$PATH"
-
 # Don't let mise print its "new version available" warning; we update below instead.
 export MISE_HIDE_UPDATE_WARNING=1
 

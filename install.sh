@@ -8,7 +8,7 @@ printf "\n"
 printf "${BOLD}Linux VM Setup${RESET}\n"
 printf "${DIM}Provisioning your development environment${RESET}\n"
 
-sudo -v
+keep_sudo_alive
 
 header "System packages"
 
@@ -52,6 +52,12 @@ section_done
 header "Automatic updates"
 
 "$REPO/scripts/install-auto-updates.sh"
+
+section_done
+
+header "Security"
+
+"$REPO/scripts/install-security.sh"
 
 section_done
 

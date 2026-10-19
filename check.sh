@@ -127,6 +127,24 @@ else
     failures=$((failures + 1))
 fi
 
+if grep -qx 'ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then
+    printf "  ${GREEN}✓${RESET} %-18s enabled\n" "Firewall"
+elif ! tailscale status >/dev/null 2>&1; then
+    printf "  ${YELLOW}!${RESET} %-18s skipped until Tailscale is connected\n" "Firewall"
+else
+    printf "  ${RED}✗${RESET} %-18s disabled\n" "Firewall"
+    failures=$((failures + 1))
+fi
+
+if [ -f /etc/ssh/sshd_config.d/10-linux-setup.conf ]; then
+    printf "  ${GREEN}✓${RESET} %-18s key-only\n" "SSH logins"
+elif [ ! -s "$HOME/.ssh/authorized_keys" ]; then
+    printf "  ${YELLOW}!${RESET} %-18s skipped until an SSH key is authorized\n" "SSH logins"
+else
+    printf "  ${RED}✗${RESET} %-18s password allowed\n" "SSH logins"
+    failures=$((failures + 1))
+fi
+
 check_symlink ".zshrc" \
     "$HOME/.zshrc" \
     "$REPO/home/.zshrc"

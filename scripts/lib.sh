@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Tool install locations (mirrors home/.zshrc), so freshly installed tools are
+# usable before a new shell has been opened.
+export PATH="$HOME/.opencode/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
+
 # Colors
 if [ -t 1 ]; then
     RESET='\033[0m'
@@ -76,4 +80,18 @@ run_with_spinner() {
         rm -f /tmp/linux-setup-output
         return 1
     fi
+}
+
+# Ask for sudo once, then refresh the timestamp in the background so long runs
+# never stop at a password prompt hidden behind a spinner.
+keep_sudo_alive() {
+    sudo -v
+
+    while kill -0 "$$" 2>/dev/null; do
+        sudo -n true 2>/dev/null
+        sleep 60
+    done >/dev/null 2>&1 &
+    SUDO_KEEPALIVE_PID=$!
+
+    trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 }

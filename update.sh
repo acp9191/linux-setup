@@ -8,7 +8,7 @@ printf "\n"
 printf "${BOLD}Linux VM Update${RESET}\n"
 printf "${DIM}Updating your development environment${RESET}\n\n"
 
-sudo -v
+keep_sudo_alive
 
 header "System packages"
 
@@ -21,7 +21,10 @@ header "Development tools"
 
 run_with_spinner "Updating mise" mise self-update -y
 run_with_spinner "Upgrading mise tools" mise upgrade
+run_with_spinner "Updating uv" uv self update
 run_with_spinner "Updating uv tools" uv tool upgrade --all
+run_with_spinner "Updating Bun" bun upgrade
+run_with_spinner "Updating OpenCode" opencode upgrade
 
 section_done
 

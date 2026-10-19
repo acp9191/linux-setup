@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: ShellCheck
+        run: shellcheck -x -S warning ./*.sh scripts/*.sh
+
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Lets `gh auth status` pass and avoids GitHub API rate limits in mise.
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install
+        run: ./install.sh
+      - name: Re-run install (idempotency)
+        run: ./install.sh
+      - name: Check
+        run: ./check.sh

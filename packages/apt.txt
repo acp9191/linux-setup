@@ -39,3 +39,4 @@ net-tools              # Legacy networking tools such as netstat
 
 # System
 unattended-upgrades    # Automatic background package updates
+ufw                    # Firewall

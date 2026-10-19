@@ -1,5 +1,7 @@
 # Linux Setup
 
+[![CI](https://github.com/acp9191/linux-setup/actions/workflows/ci.yml/badge.svg)](https://github.com/acp9191/linux-setup/actions/workflows/ci.yml)
+
 Reproducible Ubuntu development environment setup.
 
 This repository contains my personal configuration and provisioning scripts for setting up a fresh Linux development machine. The goal is simple: **clone the repo, run one command, and get back to a familiar environment.**
@@ -21,6 +23,7 @@ This repository contains my personal configuration and provisioning scripts for 
 * **Docker** — container runtime and Compose
 * **OpenCode** — AI coding agent
 * **Automatic updates** — unattended-upgrades for Ubuntu, Docker, and Tailscale packages
+* **Security** — key-only SSH and a firewall that only allows SSH over Tailscale
 * **Git** — global Git configuration, aliases, and delta
 * **GitHub CLI** — GitHub access from the terminal
 * **GPG** — Git commit signing configuration
@@ -63,7 +66,8 @@ The setup is organized into a few layers:
 7. Installs Docker and Docker Compose
 8. Installs OpenCode
 9. Enables automatic package updates
-10. Links Git and GPG configuration
+10. Hardens SSH and enables the firewall
+11. Links Git and GPG configuration
 
 Machine-specific authentication and credentials are intentionally kept outside the repository.
 
@@ -97,6 +101,7 @@ Checks include:
 * Docker works without `sudo`
 * OpenCode is installed
 * Automatic updates are enabled
+* The firewall is enabled and SSH is key-only
 * Repository-managed dotfiles are correctly symlinked
 * mise configuration is correctly symlinked
 * Git commit signing is enabled
@@ -150,6 +155,8 @@ linux-setup/
 ├── apt/
 │   ├── 20auto-upgrades
 │   └── 52unattended-upgrades-local
+├── ssh/
+│   └── 10-linux-setup.conf
 ├── packages/
 │   └── apt.txt
 ├── scripts/
@@ -158,6 +165,7 @@ linux-setup/
 │   ├── install-docker.sh
 │   ├── install-mise.sh
 │   ├── install-opencode.sh
+│   ├── install-security.sh
 │   ├── install-tailscale.sh
 │   ├── install-uv.sh
 │   ├── install-zsh.sh
@@ -165,6 +173,7 @@ linux-setup/
 ├── check.sh
 ├── install.sh
 ├── update.sh
+├── .github/workflows/ci.yml
 ├── .gitignore
 └── README.md
 ```
@@ -207,6 +216,26 @@ Ubuntu release upgrades (e.g. 24.04 → 26.04) are never applied automatically; 
 
 Tools installed outside apt (mise, uv, Bun, OpenCode, Oh My Zsh) are still updated with `./update.sh`.
 
+## Security
+
+`install.sh` hardens the machine in two steps, each guarded so it can't lock you out:
+
+* **Key-only SSH.** Password and root password logins are disabled via `/etc/ssh/sshd_config.d/10-linux-setup.conf`. This is skipped until `~/.ssh/authorized_keys` contains a key.
+* **Tailscale-only firewall.** `ufw` denies all incoming traffic except over the `tailscale0` interface (plus Tailscale's UDP port 41641), so SSH is no longer reachable on the public IP. This is skipped until `sudo tailscale up` has connected the machine, and when the current SSH session came in over the public internet.
+
+On a fresh VM, connect Tailscale, reconnect over SSH using the machine's Tailscale address, and re-run `./install.sh` to enable the firewall.
+
+If you are ever locked out, use your cloud provider's web console and run `sudo ufw disable`.
+
+> Docker-published ports (`docker run -p 8080:80`) bypass `ufw` and are reachable publicly. Bind them to localhost or the Tailscale IP instead, e.g. `-p 127.0.0.1:8080:80`.
+
+## Continuous Integration
+
+GitHub Actions runs on every push and pull request:
+
+* **ShellCheck** lints every script.
+* **Install** runs `./install.sh` twice on a fresh `ubuntu-24.04` runner (the second run confirms it is idempotent), then `./check.sh`.
+
 ## Updating
 
 The environment can be updated with:
@@ -220,7 +249,9 @@ This updates:
 * Ubuntu packages
 * mise itself
 * mise-managed runtimes
-* uv-installed tools
+* uv and uv-installed tools
+* Bun
+* OpenCode
 * Oh My Zsh
 * Zsh plugins
 
@@ -247,10 +278,25 @@ Update installed mise-managed tools:
 mise upgrade
 ```
 
-### uv tools
+### uv
 
 ```bash
+uv self update
 uv tool upgrade --all
+```
+
+### Bun
+
+```bash
+bun upgrade
+```
+
+`bun upgrade` updates the Bun runtime itself; `bun update` updates a project's dependencies.
+
+### OpenCode
+
+```bash
+opencode upgrade
 ```
 
 ### Oh My Zsh
@@ -258,8 +304,6 @@ uv tool upgrade --all
 ```bash
 omz update
 ```
-
-Bun is intentionally not updated by `update.sh` because `bun update` operates on a project's dependencies rather than updating the Bun runtime itself.
 
 The update script is intentionally focused on the tools managed by this repository. Project-specific dependencies should be updated within their respective projects.
 
