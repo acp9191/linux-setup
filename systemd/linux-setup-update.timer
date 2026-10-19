@@ -1,0 +1,12 @@
+# Managed by linux-setup.
+[Unit]
+Description=Weekly linux-setup developer tool updates
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=1h
+# Catch up at next boot if the machine was off when a run was due.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -28,3 +28,10 @@ jobs:
         run: ./install.sh
       - name: Check
         run: ./check.sh
+      - name: Run scheduled tool update
+        run: |
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          status=0
+          systemctl --user start linux-setup-update.service || status=$?
+          journalctl --user -u linux-setup-update --no-pager -o cat || true
+          exit "$status"

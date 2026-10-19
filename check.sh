@@ -116,6 +116,13 @@ else
     check_fail "Auto updates" "disabled"
 fi
 
+if [ -L "$HOME/.config/systemd/user/timers.target.wants/linux-setup-update.timer" ] \
+    && [ "$(loginctl show-user "$USER" --property=Linger --value 2>/dev/null)" = "yes" ]; then
+    ok "Tool updates" "weekly"
+else
+    check_fail "Tool updates" "timer not enabled"
+fi
+
 if [ -f /etc/ssh/sshd_config.d/10-linux-setup.conf ]; then
     ok "SSH" "key-only logins"
 elif [ ! -s "$HOME/.ssh/authorized_keys" ]; then

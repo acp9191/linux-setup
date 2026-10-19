@@ -65,7 +65,7 @@ The setup is organized into a few layers:
 6. Installs Tailscale
 7. Installs Docker and Docker Compose
 8. Installs OpenCode
-9. Enables automatic package updates
+9. Enables automatic package and tool updates
 10. Hardens SSH and enables the firewall
 11. Links Git and GPG configuration
 
@@ -100,7 +100,7 @@ Checks include:
 * Docker and Docker Compose are available
 * Docker works without `sudo`
 * OpenCode is installed
-* Automatic updates are enabled
+* Automatic updates and the weekly tool update timer are enabled
 * The firewall is enabled and SSH is key-only
 * Repository-managed dotfiles are correctly symlinked
 * mise configuration is correctly symlinked
@@ -128,6 +128,7 @@ Containers
 
 System
   ✓ Auto updates         enabled
+  ✓ Tool updates         weekly
   ✓ SSH                  key-only logins
   ✓ Firewall             enabled
 
@@ -159,6 +160,9 @@ linux-setup/
 │   └── 52unattended-upgrades-local
 ├── ssh/
 │   └── 10-linux-setup.conf
+├── systemd/
+│   ├── linux-setup-update.service
+│   └── linux-setup-update.timer
 ├── packages/
 │   └── apt.txt
 ├── scripts/
@@ -169,6 +173,7 @@ linux-setup/
 │   ├── install-opencode.sh
 │   ├── install-security.sh
 │   ├── install-tailscale.sh
+│   ├── install-update-timer.sh
 │   ├── install-uv.sh
 │   ├── install-zsh.sh
 │   └── lib.sh
@@ -216,7 +221,29 @@ Logs are written to `/var/log/unattended-upgrades/`.
 
 Ubuntu release upgrades (e.g. 24.04 → 26.04) are never applied automatically; run `sudo do-release-upgrade` deliberately when you're ready. ESM Apps updates require an [Ubuntu Pro](https://ubuntu.com/pro) subscription (`sudo pro attach`); once attached, they are picked up automatically.
 
-Tools installed outside apt (mise, uv, Bun, OpenCode, Oh My Zsh) are still updated with `./update.sh`.
+### Developer tools
+
+Tools installed outside apt are updated **weekly** by a systemd user timer that runs `./update.sh --unattended`:
+
+* mise, uv, Bun, and OpenCode self-updates
+* uv-installed tools
+* Oh My Zsh and its plugins
+
+The scheduled run skips apt (already handled above) and `mise upgrade`, so runtime versions such as a new Node LTS major are only changed when you run `./update.sh` yourself. It runs as your user, not root, and lingering is enabled so it runs while you are logged out. Missed runs are caught up at the next boot.
+
+See past runs and the next scheduled one:
+
+```bash
+journalctl --user -u linux-setup-update
+systemctl --user list-timers linux-setup-update.timer
+```
+
+Run it now, or turn it off:
+
+```bash
+systemctl --user start linux-setup-update.service
+systemctl --user disable --now linux-setup-update.timer
+```
 
 ## Security
 
@@ -236,7 +263,7 @@ If you are ever locked out, use your cloud provider's web console and run `sudo 
 GitHub Actions runs on every push and pull request:
 
 * **ShellCheck** lints every script.
-* **Install** runs `./install.sh` twice on a fresh `ubuntu-24.04` runner (the second run confirms it is idempotent), then `./check.sh`.
+* **Install** runs `./install.sh` twice on a fresh `ubuntu-24.04` runner (the second run confirms it is idempotent), then `./check.sh`, then starts the weekly update service to confirm it works under systemd.
 
 ## Updating
 
@@ -256,6 +283,8 @@ This updates:
 * OpenCode
 * Oh My Zsh
 * Zsh plugins
+
+`./update.sh --unattended` runs only the tool updates (no sudo, apt, or `mise upgrade`); it is what the weekly timer runs.
 
 Individual components can also be updated manually when appropriate.
 

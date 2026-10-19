@@ -28,26 +28,48 @@ update_repo() {
     fi
 }
 
-banner "Linux VM Update" "Updating your development environment"
+# --unattended is the weekly systemd run: no sudo, and nothing that can change
+# behavior under you. apt is left to unattended-upgrades, and runtime upgrades
+# (e.g. a new Node LTS major) stay a manual ./update.sh.
+unattended=false
 
-keep_sudo_alive
+case "${1:-}" in
+    --unattended) unattended=true ;;
+    "") ;;
+    *)
+        echo "Usage: ./update.sh [--unattended]" >&2
+        exit 2
+        ;;
+esac
 
-section "System packages"
-
-step "Package lists" "updated" sudo apt update
-
-upgradable="$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst ' || true)"
-
-if [ "$upgradable" -eq 0 ]; then
-    ok "Packages" "up to date"
+if [ "$unattended" = true ]; then
+    banner "Linux VM Update" "Scheduled tool updates"
 else
-    step "Packages" "$upgradable upgraded" sudo apt upgrade -y
+    banner "Linux VM Update" "Updating your development environment"
+
+    keep_sudo_alive
+
+    section "System packages"
+
+    step "Package lists" "updated" sudo apt update
+
+    upgradable="$(apt-get -s upgrade 2>/dev/null | grep -c '^Inst ' || true)"
+
+    if [ "$upgradable" -eq 0 ]; then
+        ok "Packages" "up to date"
+    else
+        step "Packages" "$upgradable upgraded" sudo apt upgrade -y
+    fi
 fi
 
 section "Development tools"
 
 update_tool "mise" mise mise self-update -y
-step "mise tools" "upgraded" mise upgrade
+
+if [ "$unattended" = false ]; then
+    step "mise tools" "upgraded" mise upgrade
+fi
+
 update_tool "uv" uv uv self update
 step "uv tools" "upgraded" uv tool upgrade --all
 update_tool "Bun" bun bun upgrade

@@ -48,6 +48,7 @@ ok "GPG agent" "configured"
 section "System"
 
 "$REPO/scripts/install-auto-updates.sh"
+"$REPO/scripts/install-update-timer.sh"
 "$REPO/scripts/install-security.sh"
 
 finish "Setup complete"

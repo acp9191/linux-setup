@@ -1,0 +1,8 @@
+# Managed by linux-setup. @REPO@ is replaced with the checkout path on install.
+[Unit]
+Description=Update linux-setup developer tools
+
+[Service]
+Type=oneshot
+ExecStart=@REPO@/update.sh --unattended
+Nice=10
