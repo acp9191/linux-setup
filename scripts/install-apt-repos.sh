@@ -19,24 +19,30 @@ if ! command -v curl >/dev/null 2>&1; then
     step "curl" "installed · new" apt_get install -y curl ca-certificates
 fi
 
+# setup_repo NAME BASE URI SUITE COMPONENT KEYRING [KEY_URL]
+#
+# SUITE is usually the release codename. With KEY_URL the signing key is
+# downloaded fresh into KEYRING; without it, KEYRING must already exist (for
+# repositories whose key ships with the machine image).
 setup_repo() {
     local name="$1"
     local base="$2"
     local uri="$3"
-    local component="$4"
-    local key_url="$5"
-    local keyring="/etc/apt/keyrings/$6"
+    local suite="$4"
+    local component="$5"
+    local keyring="$6"
+    local key_url="${7:-}"
     local target="$sources_dir/$base.sources"
     local code
     local tmp
-    local detail="$codename"
+    local detail="$suite"
 
-    code="$(curl -sSL -o /dev/null -w '%{http_code}' "$uri/dists/$codename/Release" || true)"
+    code="$(curl -sSL -o /dev/null -w '%{http_code}' "$uri/dists/$suite/Release" || true)"
 
     case "$code" in
         200) ;;
         404)
-            warn "$name repo" "no packages for $codename yet; left unchanged"
+            warn "$name repo" "no packages for $suite yet; left unchanged"
             return 0
             ;;
         *)
@@ -46,23 +52,30 @@ setup_repo() {
     esac
 
     tmp="$(mktemp)"
-    curl -fsSL "$key_url" -o "$tmp"
-    sudo install -D -m 644 "$tmp" "$keyring"
+
+    if [ -n "$key_url" ]; then
+        curl -fsSL "$key_url" -o "$tmp"
+        sudo install -D -m 644 "$tmp" "$keyring"
+    elif [ ! -s "$keyring" ]; then
+        warn "$name repo" "signing key $keyring missing; left unchanged"
+        rm -f "$tmp"
+        return 0
+    fi
 
     cat >"$tmp" <<EOF
 # Managed by linux-setup (scripts/install-apt-repos.sh); rewritten on install.
 Types: deb
 URIs: $uri
-Suites: $codename
+Suites: $suite
 Components: $component
 Architectures: $arch
 Signed-By: $keyring
 EOF
 
     if [ -f "$target" ] && ! cmp -s "$tmp" "$target"; then
-        detail="$codename · repaired"
+        detail="$suite · repaired"
     elif [ ! -f "$target" ]; then
-        detail="$codename · new"
+        detail="$suite · new"
     fi
 
     sudo install -m 644 "$tmp" "$target"
@@ -75,7 +88,7 @@ EOF
     while IFS= read -r other; do
         if [ "$other" != "$target" ]; then
             sudo rm -f "$other"
-            detail="$codename · repaired"
+            detail="$suite · repaired"
         fi
     done < <(
         find "$sources_dir" -maxdepth 1 -type f -name "$base.*" 2>/dev/null
@@ -86,9 +99,24 @@ EOF
 }
 
 setup_repo "Docker" docker \
-    https://download.docker.com/linux/ubuntu stable \
-    https://download.docker.com/linux/ubuntu/gpg docker.asc
+    https://download.docker.com/linux/ubuntu "$codename" stable \
+    /etc/apt/keyrings/docker.asc https://download.docker.com/linux/ubuntu/gpg
 
 setup_repo "Tailscale" tailscale \
-    https://pkgs.tailscale.com/stable/ubuntu main \
-    "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg" tailscale.gpg
+    https://pkgs.tailscale.com/stable/ubuntu "$codename" main \
+    /etc/apt/keyrings/tailscale.gpg "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg"
+
+# DigitalOcean's droplet agents, only on DigitalOcean machines that have them.
+# Their repositories aren't tied to a release (suite "main"), and the upgrader
+# can't migrate them, so it leaves them disabled. Keys come with the image.
+if dpkg -s do-agent >/dev/null 2>&1; then
+    setup_repo "DO monitoring" digitalocean-agent \
+        https://repos.insights.digitalocean.com/apt/do-agent main main \
+        /usr/share/keyrings/digitalocean-agent-keyring.gpg
+fi
+
+if dpkg -s droplet-agent >/dev/null 2>&1; then
+    setup_repo "DO console" droplet-agent \
+        https://repos-droplet.digitalocean.com/apt/droplet-agent main main \
+        /usr/share/keyrings/droplet-agent-keyring.gpg
+fi

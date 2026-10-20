@@ -10,6 +10,9 @@ Unattended-Upgrade::Allowed-Origins {
 Unattended-Upgrade::Origins-Pattern {
     "origin=Docker,codename=${distro_codename}";
     "origin=Tailscale";
+    // DigitalOcean droplet agents (their Release files only say ". main").
+    "site=repos.insights.digitalocean.com";
+    "site=repos-droplet.digitalocean.com";
 };
 
 // Clean up packages and kernels that are no longer needed.
