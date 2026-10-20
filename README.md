@@ -269,12 +269,12 @@ systemctl --user disable --now linux-setup-update.timer
 
 `install.sh` hardens the machine in two steps, each guarded so it can't lock you out:
 
-* **Key-only SSH.** Password and root password logins are disabled via `/etc/ssh/sshd_config.d/10-linux-setup.conf`. This is skipped until `~/.ssh/authorized_keys` contains a key.
+* **Key-only SSH.** Password logins and all root logins are disabled via `/etc/ssh/sshd_config.d/10-linux-setup.conf`; log in as your user and use `sudo`. This is skipped until `~/.ssh/authorized_keys` contains a key.
 * **Tailscale-only firewall.** `ufw` denies all incoming traffic except over the `tailscale0` interface (plus Tailscale's UDP port 41641), so SSH is no longer reachable on the public IP. This is skipped until `sudo tailscale up` has connected the machine, and when the current SSH session came in over the public internet.
 
 On a fresh VM, connect Tailscale, reconnect over SSH using the machine's Tailscale address, and re-run `./install.sh` to enable the firewall.
 
-If you are ever locked out, use your cloud provider's web console and run `sudo ufw disable`.
+If you are ever locked out, use your cloud provider's web console (on DigitalOcean, log in to the Droplet Console as your user rather than `root`) and run `sudo ufw disable`.
 
 > Docker-published ports (`docker run -p 8080:80`) bypass `ufw` and are reachable publicly. Bind them to localhost or the Tailscale IP instead, e.g. `-p 127.0.0.1:8080:80`.
 
