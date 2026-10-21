@@ -113,6 +113,12 @@ else
     check_fail "Docker logs" "not capped"
 fi
 
+if [ "$(jq -r '."live-restore" // false' /etc/docker/daemon.json 2>/dev/null)" = "true" ]; then
+    ok "Docker live restore" "containers survive daemon restarts"
+else
+    check_fail "Docker live restore" "disabled"
+fi
+
 if docker info >/dev/null 2>&1; then
     ok "Docker access" "without sudo"
 else

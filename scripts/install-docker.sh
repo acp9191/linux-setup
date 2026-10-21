@@ -9,9 +9,11 @@ ensure_tool "Docker" docker apt_get install -y \
     docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl enable --now --quiet docker
 
-# Cap container logs (the default json-file driver grows without limit).
-# Merged into any existing daemon.json, validated, and only restarts Docker
-# when something changed. Applies to containers created after the change.
+# Cap container logs (the default json-file driver grows without limit) and
+# keep containers running while dockerd restarts (e.g. unattended upgrades of
+# docker-ce). Merged into any existing daemon.json, validated, and only
+# restarts Docker when something changed. The log cap applies to containers
+# created after the change.
 daemon_json=/etc/docker/daemon.json
 merged="$(mktemp)"
 
@@ -22,13 +24,13 @@ else
 fi
 
 if [ -f "$daemon_json" ] && cmp -s "$merged" "$daemon_json"; then
-    ok "Docker logs" "10 MB × 3 per container"
+    ok "Docker daemon" "logs 10 MB × 3 · live restore"
 elif ! sudo dockerd --validate --config-file "$merged" >/dev/null 2>&1; then
-    fail "Docker logs" "merged daemon.json is invalid; left unchanged"
+    fail "Docker daemon" "merged daemon.json is invalid; left unchanged"
     exit 1
 else
     sudo install -D -m 644 "$merged" "$daemon_json"
-    step "Docker logs" "10 MB × 3 per container · new" sudo systemctl restart docker
+    step "Docker daemon" "logs 10 MB × 3 · live restore · new" sudo systemctl restart docker
 fi
 
 rm -f "$merged"

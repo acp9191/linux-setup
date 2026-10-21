@@ -289,9 +289,13 @@ mosh vm
 
 It runs over Tailscale (the firewall already allows all traffic on `tailscale0`).
 
-## Docker Logs
+## Docker Daemon
 
-Docker's default `json-file` log driver keeps container logs forever. `docker/daemon.json` caps them at three 10 MB files per container. `install.sh` merges it into any existing `/etc/docker/daemon.json` (other settings are kept), validates the result, and restarts Docker only when something changed.
+Docker's default `json-file` log driver keeps container logs forever. `docker/daemon.json` caps them at three 10 MB files per container.
+
+It also enables [live restore](https://docs.docker.com/engine/daemon/live-restore/), so running containers keep running when `dockerd` restarts, such as when unattended-upgrades installs a new `docker-ce`. Live restore doesn't work with Swarm mode.
+
+`install.sh` merges it into any existing `/etc/docker/daemon.json` (other settings are kept), validates the result, and restarts Docker only when something changed.
 
 The limit applies to containers created after the change; recreate existing ones (`docker compose up -d --force-recreate`) to pick it up.
 
